@@ -6,10 +6,13 @@ The callback that will be called if the current thread panics.
 ```rust
 let panicked = Arc::new(AtomicBool::new(false));
 
-let jh = std::thread::spawn({
+let jh = thread::spawn({
     let panicked = Arc::clone(&panicked);
     move || {
-        let _dp = DropPanic::new(|| panicked.store(true, Ordering::Release));
+        drop_panic! {
+            panicked.store(true, Ordering::Release);
+        };
+
         panic!("boom");
     }
 });

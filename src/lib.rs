@@ -1,4 +1,16 @@
-use std::thread;
+#[macro_export]
+macro_rules! drop_panic {
+    ($($t:tt)*) => {
+        let _drop_panic = $crate::guard(|| { $($t)* });
+    };
+}
+
+pub fn guard<F>(f: F) -> DropPanic<F>
+where
+    F: Fn(),
+{
+    DropPanic::new(f)
+}
 
 /// The callback that will be called if the current thread panics
 pub struct DropPanic<F>(F)
@@ -19,7 +31,7 @@ where
     F: Fn(),
 {
     fn drop(&mut self) {
-        if thread::panicking() {
+        if std::thread::panicking() {
             (self.0)();
         }
     }
@@ -27,6 +39,7 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::drop_panic;
     use std::{
         sync::{
             atomic::{AtomicBool, Ordering},
@@ -35,8 +48,6 @@ mod tests {
         thread,
     };
 
-    use super::DropPanic;
-
     #[test]
     fn test_drop_panic() {
         let panicked = Arc::new(AtomicBool::new(false));
@@ -44,7 +55,10 @@ mod tests {
         let jh = thread::spawn({
             let panicked = Arc::clone(&panicked);
             move || {
-                let _dp = DropPanic::new(|| panicked.store(true, Ordering::Release));
+                drop_panic! {
+                    panicked.store(true, Ordering::Release);
+                };
+
                 panic!("boom");
             }
         });
