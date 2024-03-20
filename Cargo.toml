@@ -1,5 +1,6 @@
 [package]
 name = "drop-panic"
+description = "The callback that will be called if the current thread panics"
 version = "0.1.0"
 authors = ["Bells307"]
 edition = "2021"
